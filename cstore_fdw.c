@@ -16,6 +16,7 @@
 
 #include "postgres.h"
 #include "cstore_fdw.h"
+#include "vectorized_aggregates.h"
 
 #include <sys/stat.h>
 #include <unistd.h>
@@ -101,6 +102,7 @@ PG_FUNCTION_INFO_V1(cstore_fdw_validator);
 
 /* saved hook value in case of unload */
 static ProcessUtility_hook_type PreviousProcessUtilityHook = NULL;
+static ExecutorRun_hook_type PreviousExecutorRunHook = NULL;
 
 
 /*
@@ -112,6 +114,9 @@ void _PG_init(void)
 {
 	PreviousProcessUtilityHook = ProcessUtility_hook;
 	ProcessUtility_hook = CStoreProcessUtility;
+
+	PreviousExecutorRunHook = ExecutorRun_hook;
+	ExecutorRun_hook = vectorized_ExecutorRun;
 }
 
 
@@ -122,6 +127,7 @@ void _PG_init(void)
 void _PG_fini(void)
 {
 	ProcessUtility_hook = PreviousProcessUtilityHook;
+	ExecutorRun_hook = PreviousExecutorRunHook;
 }
 
 
@@ -1211,7 +1217,7 @@ CStoreBeginForeignScan(ForeignScanState *scanState, int executorFlags)
 	CStoreFdwOptions *cstoreFdwOptions = NULL;
 	TupleTableSlot *tupleSlot = scanState->ss.ss_ScanTupleSlot;
 	TupleDesc tupleDescriptor = tupleSlot->tts_tupleDescriptor;
-	List *columnList = false;
+	List *columnList = NIL;
 	ForeignScan *foreignScan = NULL;
 	List *foreignPrivateList = NIL;
 	List *whereClauseList = NIL;
