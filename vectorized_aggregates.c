@@ -469,7 +469,7 @@ process_ordered_aggregate_multi(AggState *aggstate,
 	if (slot2)
 		ExecClearTuple(slot2);
 
-	while (tuplesort_gettupleslot(peraggstate->sortstate, true, slot1))
+	while (tuplesort_gettupleslot(peraggstate->sortstate, true, slot1, NULL))
 	{
 		/*
 		 * Extract the first numArguments as datums to pass to the transfn.
