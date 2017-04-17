@@ -1072,8 +1072,8 @@ agg_retrieve_hash_vectorized(AggState *aggstate)
 			uint64 blockRowCount = 0;
 			StripeBuffers *stripeBuffers = NULL;
 
-			ColumnData *keyColumnData = NULL;
-			ColumnData *valueColumnData = NULL;
+			ColumnBuffers *keyColumnBuffers = NULL;
+			ColumnBuffers *valueColumnBuffers = NULL;
 
 			readState->stripeBuffers = NULL;
 			outerslot =	foreignNode->fdwroutine->IterateForeignScan(foreignNode);
@@ -1087,8 +1087,8 @@ agg_retrieve_hash_vectorized(AggState *aggstate)
 			stripeBuffers = readState->stripeBuffers;
 			rowCount = stripeBuffers->rowCount;
 			blockRowCount = readState->tableFooter->blockRowCount;
-			keyColumnData = stripeBuffers->columnDataArray[keyVarIndex];
-			valueColumnData = stripeBuffers->columnDataArray[valueVarIndex];
+			keyColumnBuffers = stripeBuffers->columnBuffersArray[keyVarIndex];
+			valueColumnBuffers = stripeBuffers->columnBuffersArray[valueVarIndex];
 
 			for (i = 0; i < rowCount; i++)
 			{
@@ -1098,9 +1098,9 @@ agg_retrieve_hash_vectorized(AggState *aggstate)
 				int blockIndex = i / blockRowCount;
 				int rowIndex = i % blockRowCount;
 
-				ColumnBlockData *keyBlockData = keyColumnData->blockDataArray[blockIndex];
+				ColumnBlockData *keyBlockData = keyColumnBuffers->blockDataArray[blockIndex];
 				ColumnBlockData *valueBlockData =
-					valueColumnData->blockDataArray[blockIndex];
+					valueColumnBuffers->blockDataArray[blockIndex];
 
 				Datum key = keyBlockData->valueArray[rowIndex];
 				Datum value = valueBlockData->valueArray[rowIndex];
@@ -1399,7 +1399,7 @@ advance_aggregates_vectorized(AggState *aggstate, AggStatePerGroup pergroup)
 		AggStatePerAgg peraggstate = &aggstate->peragg[aggno];
 		AggStatePerGroup pergroupstate = &pergroup[aggno];
 		int32 argumentCount = peraggstate->numArguments + 1;
-		ColumnData *columnData = NULL;
+		ColumnBuffers *columnBuffers = NULL;
 		char *transitionFuncName = NULL;
 		char vectorTransitionFuncName[NAMEDATALEN];
 		List *qualVectorTransitionFuncName = NIL;
@@ -1411,7 +1411,7 @@ advance_aggregates_vectorized(AggState *aggstate, AggStatePerGroup pergroup)
 		if (simpleColumnCount >= 1)
 		{
 			int columnIndex = peraggstate->evalproj->pi_varNumbers[0]-1;
-			columnData = stripeBuffers->columnDataArray[columnIndex];
+			columnBuffers = stripeBuffers->columnBuffersArray[columnIndex];
 		}
 
 		/*
@@ -1436,7 +1436,7 @@ advance_aggregates_vectorized(AggState *aggstate, AggStatePerGroup pergroup)
 			fmgr_info(functionOid, &peraggstate->transfn);
 		}
 
-		fcinfo.arg[1] = PointerGetDatum(columnData);
+		fcinfo.arg[1] = PointerGetDatum(columnBuffers);
 		fcinfo.arg[2] = PointerGetDatum(&rowCount);
 		fcinfo.arg[3] = PointerGetDatum(&blockRowCount);
 
