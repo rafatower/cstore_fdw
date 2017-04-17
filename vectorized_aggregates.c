@@ -1070,12 +1070,12 @@ agg_retrieve_hash_vectorized(AggState *aggstate)
 			uint32 i = 0;
 			uint32 rowCount = 0;
 			uint64 blockRowCount = 0;
-			StripeData *stripeData = NULL;
+			StripeBuffers *stripeBuffers = NULL;
 
 			ColumnData *keyColumnData = NULL;
 			ColumnData *valueColumnData = NULL;
 
-			readState->stripeData = NULL;
+			readState->stripeBuffers = NULL;
 			outerslot =	foreignNode->fdwroutine->IterateForeignScan(foreignNode);
 
 			if (TupIsNull(outerslot))
@@ -1084,11 +1084,11 @@ agg_retrieve_hash_vectorized(AggState *aggstate)
 			/* set up for advance_aggregates call */
 			tmpcontext->ecxt_outertuple = outerslot;
 
-			stripeData = readState->stripeData;
-			rowCount = stripeData->rowCount;
+			stripeBuffers = readState->stripeBuffers;
+			rowCount = stripeBuffers->rowCount;
 			blockRowCount = readState->tableFooter->blockRowCount;
-			keyColumnData = stripeData->columnDataArray[keyVarIndex];
-			valueColumnData = stripeData->columnDataArray[valueVarIndex];
+			keyColumnData = stripeBuffers->columnDataArray[keyVarIndex];
+			valueColumnData = stripeBuffers->columnDataArray[valueVarIndex];
 
 			for (i = 0; i < rowCount; i++)
 			{
@@ -1257,7 +1257,7 @@ agg_retrieve_direct_vectorized(AggState *aggstate)
 
 	foreignNode = (ForeignScanState *) outerPlan;
 	readState = (TableReadState *) foreignNode->fdw_state;
-	readState->stripeData = NULL;
+	readState->stripeBuffers = NULL;
 
 	outerslot = foreignNode->fdwroutine->IterateForeignScan(foreignNode);
 	if (!TupIsNull(outerslot))
@@ -1312,7 +1312,7 @@ agg_retrieve_direct_vectorized(AggState *aggstate)
 			/* Reset per-input-tuple context after each tuple */
 			ResetExprContext(tmpcontext);
 
-			readState->stripeData = NULL;
+			readState->stripeBuffers = NULL;
 			outerslot = foreignNode->fdwroutine->IterateForeignScan(foreignNode);
 			if (TupIsNull(outerslot))
 			{
@@ -1389,8 +1389,8 @@ advance_aggregates_vectorized(AggState *aggstate, AggStatePerGroup pergroup)
 	PlanState  *outerPlan = outerPlanState(aggstate);
 	ForeignScanState *foreignNode = (ForeignScanState *) outerPlan;
 	TableReadState *readState = (TableReadState *) foreignNode->fdw_state;
-	StripeData *stripeData = readState->stripeData;
-	uint32 rowCount = stripeData->rowCount;
+	StripeBuffers *stripeBuffers = readState->stripeBuffers;
+	uint32 rowCount = stripeBuffers->rowCount;
 	uint64 blockRowCount = readState->tableFooter->blockRowCount;
 
 	int aggno = 0;
@@ -1411,7 +1411,7 @@ advance_aggregates_vectorized(AggState *aggstate, AggStatePerGroup pergroup)
 		if (simpleColumnCount >= 1)
 		{
 			int columnIndex = peraggstate->evalproj->pi_varNumbers[0]-1;
-			columnData = stripeData->columnDataArray[columnIndex];
+			columnData = stripeBuffers->columnDataArray[columnIndex];
 		}
 
 		/*
