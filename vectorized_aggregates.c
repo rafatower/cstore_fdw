@@ -322,7 +322,7 @@ initialize_aggregates(AggState *aggstate,
 		{
 			MemoryContext oldContext;
 
-			oldContext = MemoryContextSwitchTo(aggstate->aggcontext);
+			oldContext = MemoryContextSwitchTo(aggstate->aggcontexts[aggstate->current_set]->ecxt_per_tuple_memory);
 			pergroupstate->transValue = datumCopy(peraggstate->initValue,
 												  peraggstate->transtypeByVal,
 												  peraggstate->transtypeLen);
@@ -564,7 +564,7 @@ advance_transition_function(AggState *aggstate,
 			 * We must copy the datum into aggcontext if it is pass-by-ref. We
 			 * do not need to pfree the old transValue, since it's NULL.
 			 */
-			oldContext = MemoryContextSwitchTo(aggstate->aggcontext);
+			oldContext = MemoryContextSwitchTo(aggstate->aggcontexts[aggstate->current_set]->ecxt_per_tuple_memory);
 			pergroupstate->transValue = datumCopy(fcinfo->arg[1],
 												  peraggstate->transtypeByVal,
 												  peraggstate->transtypeLen);
@@ -610,7 +610,7 @@ advance_transition_function(AggState *aggstate,
 	{
 		if (!fcinfo->isnull)
 		{
-			MemoryContextSwitchTo(aggstate->aggcontext);
+			MemoryContextSwitchTo(aggstate->aggcontexts[aggstate->current_set]->ecxt_per_tuple_memory);
 			newVal = datumCopy(newVal,
 							   peraggstate->transtypeByVal,
 							   peraggstate->transtypeLen);
@@ -1281,7 +1281,7 @@ agg_retrieve_direct_vectorized(AggState *aggstate)
 	 */
 	ResetExprContext(econtext);
 
-	MemoryContextResetAndDeleteChildren(aggstate->aggcontext);
+	MemoryContextResetAndDeleteChildren(aggstate->aggcontexts[aggstate->current_set]->ecxt_per_tuple_memory);
 
 	/*
 	 * Initialize working state for a new input tuple group
@@ -1481,7 +1481,7 @@ advance_transition_function_vectorized(AggState *aggstate, AggStatePerAgg peragg
 	{
 		if (!fcinfo->isnull)
 		{
-			MemoryContextSwitchTo(aggstate->aggcontext);
+			MemoryContextSwitchTo(aggstate->aggcontexts[aggstate->current_set]->ecxt_per_tuple_memory);
 			newVal = datumCopy(newVal, peraggstate->transtypeByVal,
 							   peraggstate->transtypeLen);
 		}
