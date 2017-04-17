@@ -391,7 +391,7 @@ process_ordered_aggregate_single(AggState *aggstate,
 	 */
 
 	while (tuplesort_getdatum(peraggstate->sortstate, true,
-							  newVal, isNull))
+                                  newVal, isNull, NULL))
 	{
 		/*
 		 * Clear and select the working context for evaluation of the equality
