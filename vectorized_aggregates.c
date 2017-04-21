@@ -1098,14 +1098,14 @@ agg_retrieve_hash_vectorized(AggState *aggstate)
 				int blockIndex = i / blockRowCount;
 				int rowIndex = i % blockRowCount;
 
-				ColumnBlockData *keyBlockData = keyColumnBuffers->blockDataArray[blockIndex];
-				ColumnBlockData *valueBlockData =
-					valueColumnBuffers->blockDataArray[blockIndex];
+                // I don't know if that code is really useful or not
+				ColumnBlockBuffers *keyBlockBuffers = keyColumnBuffers->blockBuffersArray[blockIndex];
+				ColumnBlockBuffers *valueBlockBuffers = valueColumnBuffers->blockBuffersArray[blockIndex];
 
-				Datum key = keyBlockData->valueArray[rowIndex];
-				Datum value = valueBlockData->valueArray[rowIndex];
+				Datum key = readState->blockDataArray[keyVarIndex]->valueArray[rowIndex];
+				Datum value = readState->blockDataArray[valueVarIndex]->valueArray[rowIndex];
 
-				bool exists = valueBlockData->existsArray[rowIndex];
+				bool exists = readState->blockDataArray[valueVarIndex]->existsArray[rowIndex];
 				if (!exists)
 				{
 					/* Reset per-input-tuple context after each tuple */
